@@ -75,17 +75,17 @@ class DroneCache
   end
 
   def cache_path
-    @cache_path ||= "#{cache_root}/#{check_sum}"
+    @cache_path ||= "#{cache_root}/#{checksum}"
   end
 
-  def check_sum
-    @check_sum ||= begin
+  def checksum
+    @checksum ||= begin
       abort!("Cound not found source at: #{key_path}") unless File.exists?(key_path)
 
-      check_sum = %x(find #{key_path} -type f -exec md5sum {} \\; | sort -k 2 | md5sum)
-      abort!('Fail when exec check_sum') unless $?.success?
+      checksum = %x(find #{key_path} -type f -exec md5sum {} \\; | sort -k 2 | md5sum)
+      abort!('Fail when exec checksum') unless $?.success?
 
-      check_sum.slice(0, 16)
+      checksum.slice(0, 16)
     end
   end
 end
