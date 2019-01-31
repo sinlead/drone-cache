@@ -1,3 +1,5 @@
+require 'English'
+
 # A Drone CI plugin
 class DroneCache
   attr_accessor :key_path, :mount_path, :prefix, :commit_msg, :action
