@@ -1,3 +1,4 @@
+# A Drone CI plugin
 class DroneCache
   attr_accessor :key_path, :mount_path, :prefix, :commit_msg, :action
 
@@ -9,28 +10,32 @@ class DroneCache
   end
 
   def run
-    abort!("Prefix `#{prefix}` is invalid!") unless prefix_valid?(prefix)
+    abort("Prefix `#{prefix}` is invalid!") unless prefix_valid?(prefix)
 
     if action == 'save'
       save
     elsif action == 'load'
       load
     else
-      abort!("Unknown action: `#{action}`!")
+      abort("Unknown action: `#{action}`!")
     end
   end
 
   def save
-    finish!('Cache already exists. Skip saving.') if File.exists?(cache_path)
+    finish!('Cache already exists. Skip saving.') if File.exist?(cache_path)
 
-    abort!("Cound not found mount dir at: #{mount_path}") unless File.exists?(mount_path)
+    unless File.exist?(mount_path)
+      abort("Cound not found mount dir at: #{mount_path}")
+    end
 
     rsync!(mount_path, cache_path)
     finish!('Save cache success!')
   end
 
   def load
-    finish!('Cache file not found. Skip loading.') unless File.exists?(cache_path)
+    unless File.exist?(cache_path)
+      finish!('Cache file not found. Skip loading.')
+    end
 
     rsync!(cache_path, mount_path)
     finish!('Load cache success!')
@@ -42,32 +47,38 @@ class DroneCache
     prefix.to_s.match?(/\A[[:alpha:]]([[:alnum:]]|_|-)+\z/)
   end
 
-  def abort!(message)
-    STDERR.puts(message)
-    exit 1
-  end
-
   def finish!(message)
     puts(message)
     exit 0
   end
 
   def rsync!(src, dist)
+    src, dist, dist_dir = correct_rsync_args(src, dist)
+
+    job_name = "rsync from #{src} to #{dist}"
+
+    puts("#{job_name} start.")
+    `mkdir -p #{dist_dir} && rsync -aHA --delete #{src} #{dist}`
+
+    if $CHILD_STATUS.success?
+      puts("#{job_name} success.")
+    else
+      abort("#{job_name} failed.")
+    end
+  end
+
+  def correct_rsync_args(src, dist)
+    src, dist = [src, dist].map { |path| path.chomp('/') }
+    if [src, dist].any?(&:empty?)
+      abort('Mount path should not be empty or root')
+    end
+
     is_dir = !File.file?(src)
 
     src = is_dir ? "#{src}/" : src
     dist_dir = is_dir ? dist : File.dirname(dist)
 
-    job_name = "rsync from #{src} to #{dist}"
-
-    puts("#{job_name} start.")
-    %x(mkdir -p #{dist_dir} && rsync -aHA --delete #{src} #{dist})
-
-    if $?.success?
-      puts("#{job_name} success.")
-    else
-      abort!("#{job_name} failed.")
-    end
+    [src, dist, dist_dir]
   end
 
   def cache_root
@@ -80,10 +91,13 @@ class DroneCache
 
   def checksum
     @checksum ||= begin
-      abort!("Cound not found source at: #{key_path}") unless File.exists?(key_path)
+      unless File.exist?(key_path)
+        abort("Cound not found source at: #{key_path}")
+      end
 
-      checksum = %x(find #{key_path} -type f -exec md5sum {} \\; | sort -k 2 | md5sum)
-      abort!('Fail when exec checksum') unless $?.success?
+      checksum =
+        `find #{key_path} -type f -exec md5sum {} \\; | sort -k 2 | md5sum`
+      abort('Fail when exec checksum') unless $CHILD_STATUS.success?
 
       checksum.slice(0, 16)
     end
