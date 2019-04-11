@@ -60,7 +60,7 @@ class DroneCache
     job_name = "rsync from #{src} to #{dist}"
 
     puts("#{job_name} start.")
-    `mkdir -p #{dist_dir} && rsync -aHA --delete #{src} #{dist}`
+    `mkdir -p #{dist_dir} && rsync -azHA --delete #{src} #{dist}`
 
     if $CHILD_STATUS.success?
       puts("#{job_name} success.")
