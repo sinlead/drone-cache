@@ -30,7 +30,7 @@ class DroneCache
       abort("Cound not found mount dir at: #{mount_path}")
     end
 
-    rsync!(mount_path, cache_path)
+    archive!(mount_path, cache_path)
     finish!('Save cache success!')
   end
 
@@ -39,7 +39,7 @@ class DroneCache
       finish!('Cache file not found. Skip loading.')
     end
 
-    rsync!(cache_path, mount_path)
+    unarchive!(cache_path, mount_path)
     finish!('Load cache success!')
   end
 
@@ -54,14 +54,17 @@ class DroneCache
     exit 0
   end
 
-  def rsync!(src, dist)
-    src, dist, dist_dir = correct_rsync_args(src, dist)
+  def unarchive!(src, dist)
+    `mkdir -p #{dist} && tar -xf #{src} -C #{dist}`
+    check_child_status!("Unarchive from #{src} to #{dist}")
+  end
 
-    job_name = "rsync from #{src} to #{dist}"
+  def archive!(src, dist)
+    `tar -cpf #{dist} -C #{src} .`
+    check_child_status!("Archive from #{src} to #{dist}")
+  end
 
-    puts("#{job_name} start.")
-    `mkdir -p #{dist_dir} && rsync -aHA --delete #{src} #{dist}`
-
+  def check_child_status!(job_name)
     if $CHILD_STATUS.success?
       puts("#{job_name} success.")
     else
@@ -69,26 +72,16 @@ class DroneCache
     end
   end
 
-  def correct_rsync_args(src, dist)
-    src, dist = [src, dist].map { |path| path.chomp('/') }
-    if [src, dist].any?(&:empty?)
-      abort('Mount path should not be empty or root')
-    end
-
-    is_dir = !File.file?(src)
-
-    src = is_dir ? "#{src}/" : src
-    dist_dir = is_dir ? dist : File.dirname(dist)
-
-    [src, dist, dist_dir]
-  end
-
   def cache_root
     @cache_root ||= "/cache/#{prefix}"
   end
 
+  def cache_filename
+    @cache_filename ||= "#{checksum}.tar"
+  end
+
   def cache_path
-    @cache_path ||= "#{cache_root}/#{checksum}"
+    @cache_path ||= "#{cache_root}/#{cache_filename}"
   end
 
   def checksum
