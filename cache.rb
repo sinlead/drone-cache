@@ -30,6 +30,7 @@ class DroneCache
       abort("Cound not found mount dir at: #{mount_path}")
     end
 
+    build_cache_root!
     archive!(mount_path, cache_path)
     finish!('Save cache success!')
   end
@@ -60,8 +61,13 @@ class DroneCache
   end
 
   def archive!(src, dist)
-    `mkdir -p #{cache_root} && tar -cpf #{dist} -C #{src} .`
+    `tar -cpf #{dist} -C #{src} .`
     check_child_status!("Archive from #{src} to #{dist}")
+  end
+
+  def build_cache_root!
+    `mkdir -p #{cache_root}`
+    check_child_status!("Build cache root")
   end
 
   def check_child_status!(job_name)
