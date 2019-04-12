@@ -60,7 +60,7 @@ class DroneCache
   end
 
   def archive!(src, dist)
-    `tar -cf #{dist} -C #{src} .`
+    `tar -cpf #{dist} -C #{src} .`
     check_child_status!("Archive from #{src} to #{dist}")
   end
 
