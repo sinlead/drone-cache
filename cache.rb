@@ -30,7 +30,8 @@ class DroneCache
       abort("Cound not found mount dir at: #{mount_path}")
     end
 
-    rsync!(mount_path, cache_path)
+    archive!(mount_path, tmp_path)
+    rsync!(tmp_path, cache_path)
     finish!('Save cache success!')
   end
 
@@ -39,7 +40,8 @@ class DroneCache
       finish!('Cache file not found. Skip loading.')
     end
 
-    rsync!(cache_path, mount_path)
+    rsync!(cache_path, tmp_path)
+    unarchive!(tmp_path, mount_path)
     finish!('Load cache success!')
   end
 
@@ -69,6 +71,15 @@ class DroneCache
     end
   end
 
+  def unarchive!(src, dist)
+    `mkdir -p #{dist}`
+    `tar -xf #{src} -C #{dist}`
+  end
+
+  def archive!(src, dist)
+    `tar -cf #{dist} -C #{src} .`
+  end
+
   def correct_rsync_args(src, dist)
     src, dist = [src, dist].map { |path| path.chomp('/') }
     if [src, dist].any?(&:empty?)
@@ -87,8 +98,16 @@ class DroneCache
     @cache_root ||= "/cache/#{prefix}"
   end
 
+  def cache_filename
+    @cache_filename ||= "#{checksum}.tar"
+  end
+
   def cache_path
-    @cache_path ||= "#{cache_root}/#{checksum}"
+    @cache_path ||= "#{cache_root}/#{cache_filename}"
+  end
+
+  def tmp_path
+    @tmp_path ||= "/tmp/#{cache_filename}"
   end
 
   def checksum
