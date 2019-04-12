@@ -55,12 +55,12 @@ class DroneCache
   end
 
   def unarchive!(src, dist)
-    `mkdir -p #{dist} && tar -xf #{src} -C #{dist}`
+    `tar -xf #{src} -C #{dist}`
     check_child_status!("Unarchive from #{src} to #{dist}")
   end
 
   def archive!(src, dist)
-    `tar -cpf #{dist} -C #{src} .`
+    `mkdir -p #{dist} && tar -cpf #{dist} -C #{src} .`
     check_child_status!("Archive from #{src} to #{dist}")
   end
 
