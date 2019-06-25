@@ -63,3 +63,7 @@ volumes:
     host:
       path: /tmp/cache
 ```
+
+## TODO
+
+- [ ] Clear old caches
