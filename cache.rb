@@ -57,7 +57,12 @@ class DroneCache
 
   def unarchive!(src, dist)
     `mkdir -p #{dist} && tar -xf #{src} -C #{dist}`
-    check_child_status!("Unarchive from #{src} to #{dist}")
+    if $CHILD_STATUS.success?
+      check_child_status!("Unarchive from #{src} to #{dist}")
+    else
+      `rm -f #{src}`
+      finish!('Invalid cache removed. Skip loading.')
+    end
   end
 
   def archive!(src, dist)
